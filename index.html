@@ -1,0 +1,905 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Gym Tracker" />
+  <meta name="theme-color" content="#0e0900" />
+  <title>Ajish Rajan's Gym Tracker</title>
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    html, body { margin: 0; padding: 0; height: 100%; }
+    body {
+      background: #0e0900;
+      color: #fde8c0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-size: 14px;
+      overscroll-behavior: none;
+      -webkit-overflow-scrolling: touch;
+    }
+    #app {
+      min-height: 100vh;
+      background: #0e0900;
+      padding-bottom: calc(72px + env(safe-area-inset-bottom));
+      padding-top: env(safe-area-inset-top);
+    }
+    ::-webkit-scrollbar { width: 4px; height: 4px; }
+    ::-webkit-scrollbar-track { background: #1a1200; }
+    ::-webkit-scrollbar-thumb { background: #f59e0b66; border-radius: 4px; }
+
+    /* ── Top bar ── */
+    .topbar {
+      position: sticky; top: 0; z-index: 50;
+      background: #1a1200; border-bottom: 1px solid #3d2800;
+      padding: 10px 14px; display: flex; align-items: center;
+    }
+    .topbar-title {
+      font-size: 15px; font-weight: 700;
+      background: linear-gradient(135deg,#f59e0b,#fb923c);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .topbar-sub { font-size: 9px; color: #8a6a3a; margin-left: auto; }
+
+    /* ── Bottom nav ── */
+    .bottomnav {
+      position: fixed; bottom: 0; left: 0; right: 0; z-index: 50;
+      background: #1a1200; border-top: 1px solid #3d2800;
+      display: flex;
+      padding-bottom: env(safe-area-inset-bottom);
+    }
+    .bnbtn {
+      flex: 1; padding: 9px 2px 7px; border: none; background: none;
+      color: #8a6a3a; font-size: 9px; cursor: pointer;
+      display: flex; flex-direction: column; align-items: center; gap: 2px;
+    }
+    .bnbtn.active { color: #f59e0b; }
+    .bnbtn-ico { font-size: 17px; line-height: 1; }
+
+    /* ── Page / card ── */
+    .page { padding: 12px 14px; }
+    .card {
+      background: #1a1200; border: 1px solid #3d2800;
+      border-radius: 12px; padding: 14px; margin-bottom: 12px;
+    }
+    .card-title {
+      font-size: 11px; font-weight: 700; color: #8a6a3a;
+      margin: 0 0 12px; text-transform: uppercase; letter-spacing: .5px;
+    }
+
+    /* ── Stat boxes ── */
+    .stat-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; margin-bottom: 12px; }
+    .stat-grid-2 { grid-template-columns: 1fr 1fr; }
+    .stat {
+      background: #0e0900; border: 1px solid #3d2800;
+      border-radius: 10px; padding: 10px 6px; text-align: center;
+    }
+    .stat-val { font-size: 20px; font-weight: 700; line-height: 1; color: #f59e0b; }
+    .stat-val.c2 { color: #fbbf24; } .stat-val.c3 { color: #fb923c; }
+    .stat-val.c4 { color: #fcd34d; } .stat-val.dim { color: #4a3518; }
+    .stat-lbl { font-size: 10px; color: #8a6a3a; margin-top: 4px; }
+    .stat-unit { font-size: 9px; color: #4a3518; margin-top: 2px; }
+
+    /* ── Badges ── */
+    .badge {
+      display: inline-block; font-size: 9px; padding: 1px 5px;
+      border-radius: 99px; font-weight: 700; margin-left: 3px; vertical-align: middle;
+    }
+    .badge.up { background: #4ade8022; color: #4ade80; }
+    .badge.dn { background: #f8717122; color: #f87171; }
+    .badge.eq { background: #4a3518; color: #8a6a3a; }
+
+    /* ── Form fields ── */
+    .field { margin-bottom: 10px; }
+    .field label { display: block; font-size: 11px; color: #8a6a3a; margin-bottom: 5px; font-weight: 500; }
+    .field select, .field input {
+      width: 100%; background: #0e0900; border: 1px solid #3d2800;
+      border-radius: 8px; color: #fde8c0; padding: 10px 12px; font-size: 14px;
+      outline: none; appearance: none; -webkit-appearance: none;
+    }
+    .field select:focus, .field input:focus { border-color: #f59e0b; }
+    .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+    /* ── Buttons ── */
+    .btn {
+      border: none; border-radius: 8px; padding: 11px 16px;
+      font-size: 13px; font-weight: 600; cursor: pointer;
+      width: 100%; display: block; text-align: center;
+    }
+    .btn-primary { background: linear-gradient(135deg,#f59e0b,#d97706); color: #0e0900; }
+    .btn-primary:active { opacity: .85; }
+    .btn-secondary { background: #1a1200; border: 1px solid #3d2800; color: #8a6a3a; }
+    .btnrow { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px; }
+
+    /* ── Exercise rows ── */
+    .ex-row {
+      background: #0e0900; border: 1px solid #3d2800;
+      border-radius: 10px; padding: 10px; margin-bottom: 8px;
+      border-left: 3px solid #f59e0b;
+    }
+    .ex-sel {
+      background: transparent; border: none; color: #fbbf24;
+      font-weight: 600; font-size: 13px; width: 100%; outline: none;
+      padding: 0; margin-bottom: 8px; appearance: none; -webkit-appearance: none;
+    }
+    .ex-inputs { display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 6px; align-items: end; }
+    .mini-lbl { font-size: 9px; color: #8a6a3a; margin-bottom: 3px; }
+    .mini-inp {
+      background: #1a1200; border: 1px solid #3d2800; border-radius: 6px;
+      color: #fde8c0; padding: 7px 8px; width: 100%; font-size: 13px;
+      outline: none; text-align: center;
+    }
+    .mini-inp:focus { border-color: #f59e0b; }
+    .del-btn {
+      background: #f59e0b22; border: 1px solid #f59e0b44;
+      color: #f87171; border-radius: 6px; padding: 7px 9px; cursor: pointer; font-size: 14px;
+    }
+
+    /* ── Metric pills ── */
+    .pill-row { display: flex; gap: 8px; margin-bottom: 12px; }
+    .pill {
+      flex: 1; padding: 7px 4px; background: #0e0900; border: 1px solid #3d2800;
+      border-radius: 8px; color: #8a6a3a; font-size: 11px; font-weight: 600; cursor: pointer;
+    }
+    .pill.active { background: #f59e0b22; border-color: #f59e0b; color: #fbbf24; }
+
+    /* ── Detail rows ── */
+    .detail-row {
+      border-bottom: 1px solid #3d2800; padding: 9px 0;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .detail-row:last-child { border-bottom: none; }
+    .detail-name { font-size: 12px; color: #fbbf24; flex: 1; padding-right: 8px; }
+    .detail-nums { display: flex; gap: 8px; align-items: center; flex-shrink: 0; }
+
+    /* ── Session chips ── */
+    .session-chips { display: flex; gap: 8px; margin-top: 8px; }
+    .sess-chip {
+      flex: 1; background: #0e0900; border: 1px solid #3d2800;
+      border-radius: 8px; padding: 8px 10px;
+    }
+    .sess-chip-label { font-size: 9px; color: #8a6a3a; margin-bottom: 3px; text-transform: uppercase; }
+    .sess-chip-date { font-size: 12px; font-weight: 600; }
+    .sess-chip-count { font-size: 11px; color: #8a6a3a; }
+
+    /* ── Progress tab ── */
+    .prog-filters { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+    .prog-chip {
+      padding: 5px 10px; background: #0e0900; border: 1px solid #3d2800;
+      border-radius: 20px; font-size: 11px; color: #8a6a3a; cursor: pointer; white-space: nowrap;
+    }
+    .prog-chip.active { font-weight: 600; }
+    .prog-legend { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+    .prog-legend-item { display: flex; align-items: center; gap: 4px; font-size: 10px; color: #8a6a3a; }
+    .prog-legend-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+    .ex-card { padding: 10px 14px; margin-bottom: 10px; }
+    .ex-card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+    .ex-card-name { font-size: 13px; font-weight: 700; flex: 1; padding-right: 8px; }
+    .ex-card-stats { display: flex; }
+    .ex-stat { flex: 1; text-align: center; border-right: 1px solid #3d2800; }
+    .ex-stat:last-child { border-right: none; }
+    .ex-stat-val { font-size: 18px; font-weight: 700; }
+    .ex-stat-lbl { font-size: 9px; color: #8a6a3a; margin-top: 2px; }
+    .sparkline { margin-top: 8px; }
+
+    /* ── Body weight tab ── */
+    .bw-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 10px 0; border-bottom: 1px solid #3d2800;
+    }
+    .bw-row:last-child { border-bottom: none; }
+    .bw-date { font-size: 12px; color: #8a6a3a; }
+    .bw-val { font-size: 16px; font-weight: 700; color: #fbbf24; }
+    .bw-val.empty-val { color: #4a3518; }
+
+    /* ── Misc ── */
+    .sec-head {
+      font-size: 11px; font-weight: 700; color: #8a6a3a;
+      text-transform: uppercase; letter-spacing: .6px; margin: 14px 0 8px;
+    }
+    .empty-state { text-align: center; color: #4a3518; padding: 32px 16px; font-size: 13px; line-height: 1.6; }
+
+    /* ── SVG Charts ── */
+    .chart-wrap { width: 100%; overflow: hidden; margin-top: 8px; }
+    svg text { fill: #8a6a3a; font-family: -apple-system, sans-serif; }
+  </style>
+</head>
+<body>
+<div id="app"></div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════════════════
+//  AJISH RAJAN'S GYM TRACKER — Fully Self-Contained
+//  No external dependencies. Pure vanilla JS + inline SVG charts.
+// ═══════════════════════════════════════════════════════════════════════════
+
+// ── Data ─────────────────────────────────────────────────────────────────
+const WORKOUTS = {
+  "Day 1 – Chest & Triceps":  ["Barbell Bench Press","Incline Dumbbell Press","Cable Chest Flyes","Chest Press Machine","Overhead Cable Extension","Skull Crusher","Dumbbell Extension","Machine Fly","Plate-Loaded Chest Press","Tricep Dips","Tricep Rope Pushdowns","Cardio"],
+  "Day 2 – Legs":             ["Barbell Squats","Leg Press","Romanian Deadlifts","Leg Curls","Leg Extension","Dumbbell Front Squat","Lunges","Standing Calf Raise","Seated Machine Calf Raise","Glute Bridges","Abductors","StairMaster"],
+  "Day 3 – Core":             ["Woodchops","Ab Coaster","Hanging Leg Raises","Cable Crunches","Plank Hold","Russian Twists","Bicycle Crunches","Abs Rollout","Lying Leg Raises","Cardio"],
+  "Day 4 – Recovery":         ["Foam Rolling","Light Stretching","Yoga","Meditation","Walk"],
+  "Day 5 – Back & Biceps":    ["Deadlifts","Lat Pulldowns","Barbell Rows","Bicep Curls","Hammer Curls","Cable Bicep Curls","Seated Cable Row","T-Bar Row","Preacher Curl","Standing Barbell Curls","Cardio"],
+  "Day 6 – Shoulders":        ["Military Press","Lateral Raises","Front Raises","Face Pull","Rear Delt Flyes","Dumbbell Shrugs","Arnold Press","Seated T-Bar Raise","Upright Row","Cardio"],
+  "Day 7 – Recovery":         ["Foam Rolling","Light Stretching","Yoga","Meditation","Walk"]
+};
+const DAY_KEYS = Object.keys(WORKOUTS);
+const LINE_COLORS = ["#f59e0b","#fb923c","#fbbf24","#fcd34d","#d97706","#fdba74","#fef08a","#f97316"];
+const TABS = [
+  { id:"log",      icon:"📋", label:"Log"      },
+  { id:"weekly",   icon:"📅", label:"Weekly"   },
+  { id:"monthly",  icon:"📈", label:"Monthly"  },
+  { id:"progress", icon:"🏆", label:"Progress" },
+  { id:"body",     icon:"⚖️", label:"Weight"   },
+];
+
+// ── Storage helpers ──────────────────────────────────────────────────────
+const ls = {
+  get: (k, d) => { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch { return d; } },
+  set: (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} }
+};
+
+// ── Date helpers ─────────────────────────────────────────────────────────
+const isoDate  = d => d.toISOString().split("T")[0];
+const today    = () => isoDate(new Date());
+const addDays  = (iso, n) => { const d = new Date(iso); d.setDate(d.getDate() + n); return isoDate(d); };
+const mondayOf = iso => { const d = new Date(iso); d.setDate(d.getDate() - ((d.getDay() || 7) - 1)); return isoDate(d); };
+const monthOf  = iso => iso.slice(0, 7);
+const prevMonth = () => { const d = new Date(); d.setMonth(d.getMonth() - 1); return monthOf(isoDate(d)); };
+const shortDate = iso => iso.slice(5); // MM-DD
+const dayName  = iso => ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"][new Date(iso).getDay() === 0 ? 6 : new Date(iso).getDay() - 1];
+
+// ── State ────────────────────────────────────────────────────────────────
+const state = {
+  tab:        "log",
+  logDate:    today(),
+  logDay:     DAY_KEYS[0],
+  entries:    [],                         // current session being edited
+  allLogs:    ls.get("gtp_logs", {}),     // { "date||day": [...entries] }
+  bw:         ls.get("gtp_bw", {}),       // { "date": kg }
+  bwDate:     today(),
+  bwInput:    "",
+  wkDay:      DAY_KEYS[0],               // weekly filter
+  moDay:      DAY_KEYS[0],               // monthly filter
+  prDay:      DAY_KEYS[0],               // progress filter
+  metric:     "weight",                  // weekly/monthly metric toggle
+  prMetric:   "weight",                  // progress metric
+  selEx:      [],                        // selected exercises in progress
+};
+
+// ── Core logic helpers ───────────────────────────────────────────────────
+const logKey = (date, day) => `${date}||${day}`;
+
+function getLogForWeek(mondayIso, dayKey) {
+  for (let i = 6; i >= 0; i--) {
+    const k = logKey(addDays(mondayIso, i), dayKey);
+    if (state.allLogs[k]?.length) return { date: addDays(mondayIso, i), entries: state.allLogs[k] };
+  }
+  return null;
+}
+
+function getLogForMonth(mKey, dayKey) {
+  const matches = Object.entries(state.allLogs)
+    .filter(([k]) => k.endsWith(`||${dayKey}`) && k.startsWith(mKey))
+    .sort((a, b) => b[0].localeCompare(a[0]));
+  if (!matches.length) return null;
+  return { date: matches[0][0].split("||")[0], entries: matches[0][1] };
+}
+
+function getAllTimeSessions(dayKey) {
+  return Object.entries(state.allLogs)
+    .filter(([k]) => k.endsWith(`||${dayKey}`))
+    .map(([k, v]) => ({ date: k.split("||")[0], entries: v }))
+    .sort((a, b) => a.date.localeCompare(b.date));
+}
+
+function totalField(entries, field) {
+  return (entries || []).reduce((s, e) => s + (+e[field] || 0), 0);
+}
+
+function pct(a, b) {
+  if (!b) return null;
+  return (((a - b) / b) * 100).toFixed(1);
+}
+
+function buildSkuData(thisEnts, lastEnts, tk, lk, field) {
+  const tm = {}, lm = {};
+  (thisEnts || []).forEach(e => tm[e.exercise] = +e[field] || 0);
+  (lastEnts || []).forEach(e => lm[e.exercise] = +e[field] || 0);
+  const all = [...new Set([...Object.keys(tm), ...Object.keys(lm)])];
+  return all.map(ex => ({ name: ex, [tk]: tm[ex] || 0, [lk]: lm[ex] || 0 }));
+}
+
+// ── SVG Chart Engine ─────────────────────────────────────────────────────
+const CHART = {
+  // Horizontal bar chart (for weekly/monthly SKU comparison)
+  hbar(data, key1, key2, col1, col2) {
+    if (!data.length) return '';
+    const H = Math.max(220, data.length * 50);
+    const W = 340;
+    const labelW = 110;
+    const barArea = W - labelW - 10;
+    const maxVal = Math.max(...data.flatMap(d => [d[key1] || 0, d[key2] || 0]), 1);
+    const rowH = H / data.length;
+    const bH = 10;
+
+    let bars = '', labels = '';
+    data.forEach((d, i) => {
+      const y = i * rowH + rowH / 2;
+      const w1 = ((d[key1] || 0) / maxVal) * barArea;
+      const w2 = ((d[key2] || 0) / maxVal) * barArea;
+      const name = d.name.length > 15 ? d.name.slice(0, 14) + '…' : d.name;
+      labels += `<text x="${labelW - 6}" y="${y - 5}" text-anchor="end" font-size="11" fill="#fde8c0">${name}</text>`;
+      bars += `<rect x="${labelW}" y="${y - bH - 2}" width="${w1}" height="${bH}" rx="3" fill="${col1}"/>`;
+      if (d[key1]) bars += `<text x="${labelW + w1 + 3}" y="${y - 5}" font-size="9" fill="${col1}">${d[key1]}</text>`;
+      bars += `<rect x="${labelW}" y="${y + 2}" width="${w2}" height="${bH}" rx="3" fill="${col2}"/>`;
+      if (d[key2]) bars += `<text x="${labelW + w2 + 3}" y="${y + 10}" font-size="9" fill="${col2}">${d[key2]}</text>`;
+    });
+
+    return `<svg viewBox="0 0 ${W} ${H}" width="100%" style="max-height:${H}px">
+      <line x1="${labelW}" y1="0" x2="${labelW}" y2="${H}" stroke="#3d2800" stroke-width="1"/>
+      ${labels}${bars}
+    </svg>`;
+  },
+
+  // Multi-line chart (for progress tab)
+  lines(sessions, exerciseNames, activeExs, colors) {
+    if (!sessions.length || !activeExs.length) return '';
+    const W = 340, H = 200;
+    const padL = 32, padR = 8, padT = 10, padB = 28;
+    const cW = W - padL - padR, cH = H - padT - padB;
+    const n = sessions.length;
+
+    const xScale = i => padL + (n <= 1 ? cW / 2 : (i / (n - 1)) * cW);
+    const allVals = sessions.flatMap(s => activeExs.map(ex => s[ex] || 0)).filter(v => v > 0);
+    const maxY = allVals.length ? Math.max(...allVals) : 1;
+    const minY = allVals.length ? Math.min(...allVals) * 0.9 : 0;
+    const yScale = v => padT + cH - ((v - minY) / (maxY - minY || 1)) * cH;
+
+    // grid lines
+    let grid = '';
+    for (let i = 0; i <= 4; i++) {
+      const y = padT + (i / 4) * cH;
+      const val = Math.round(maxY - (i / 4) * (maxY - minY));
+      grid += `<line x1="${padL}" y1="${y}" x2="${W - padR}" y2="${y}" stroke="#3d2800" stroke-width="0.5"/>`;
+      grid += `<text x="${padL - 3}" y="${y + 3}" text-anchor="end" font-size="8" fill="#8a6a3a">${val}</text>`;
+    }
+
+    // x-axis labels (show up to 6)
+    let xLabels = '';
+    const step = Math.max(1, Math.floor(n / 6));
+    for (let i = 0; i < n; i += step) {
+      xLabels += `<text x="${xScale(i)}" y="${H - 4}" text-anchor="middle" font-size="8" fill="#8a6a3a">${sessions[i].date}</text>`;
+    }
+
+    // lines & dots
+    let paths = '';
+    activeExs.forEach((ex, ei) => {
+      const col = colors[exerciseNames.indexOf(ex) % colors.length];
+      let pts = [];
+      sessions.forEach((s, i) => {
+        const v = s[ex];
+        if (v !== null && v !== undefined && v > 0) pts.push([xScale(i), yScale(v)]);
+        else if (pts.length) {
+          if (pts.length > 1) paths += `<polyline points="${pts.map(p => p.join(',')).join(' ')}" fill="none" stroke="${col}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`;
+          pts = [];
+        }
+      });
+      if (pts.length > 1) paths += `<polyline points="${pts.map(p => p.join(',')).join(' ')}" fill="none" stroke="${col}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`;
+      sessions.forEach((s, i) => {
+        const v = s[ex];
+        if (v !== null && v > 0) paths += `<circle cx="${xScale(i)}" cy="${yScale(v)}" r="3" fill="#0e0900" stroke="${col}" stroke-width="2"/>`;
+      });
+    });
+
+    return `<svg viewBox="0 0 ${W} ${H}" width="100%">${grid}${xLabels}${paths}</svg>`;
+  },
+
+  // Mini sparkline
+  spark(vals, col) {
+    if (vals.length < 2) return '';
+    const W = 300, H = 50;
+    const maxY = Math.max(...vals), minY = Math.min(...vals) * 0.9 || 0;
+    const xS = i => (i / (vals.length - 1)) * W;
+    const yS = v => H - 4 - ((v - minY) / (maxY - minY || 1)) * (H - 8);
+    const pts = vals.map((v, i) => `${xS(i)},${yS(v)}`).join(' ');
+    return `<svg viewBox="0 0 ${W} ${H}" width="100%" height="${H}">
+      <polyline points="${pts}" fill="none" stroke="${col}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+    </svg>`;
+  },
+
+  // Line chart for body weight
+  bwLine(data) {
+    if (data.length < 2) return '';
+    const W = 340, H = 160;
+    const padL = 36, padR = 8, padT = 10, padB = 24;
+    const cW = W - padL - padR, cH = H - padT - padB;
+    const n = data.length;
+    const vals = data.map(d => d.kg);
+    const maxY = Math.max(...vals), minY = Math.min(...vals);
+    const range = maxY - minY || 1;
+    const xS = i => padL + (i / (n - 1)) * cW;
+    const yS = v => padT + cH - ((v - minY * 0.999) / (range * 1.05)) * cH;
+
+    let grid = '';
+    for (let i = 0; i <= 3; i++) {
+      const y = padT + (i / 3) * cH;
+      const val = (maxY - (i / 3) * range).toFixed(1);
+      grid += `<line x1="${padL}" y1="${y}" x2="${W - padR}" y2="${y}" stroke="#3d2800" stroke-width="0.5"/>`;
+      grid += `<text x="${padL - 3}" y="${y + 3}" text-anchor="end" font-size="8" fill="#8a6a3a">${val}</text>`;
+    }
+    const step = Math.max(1, Math.floor(n / 5));
+    let xLabels = '';
+    for (let i = 0; i < n; i += step)
+      xLabels += `<text x="${xS(i)}" y="${H - 4}" text-anchor="middle" font-size="8" fill="#8a6a3a">${data[i].date}</text>`;
+
+    const pts = data.map((d, i) => `${xS(i)},${yS(d.kg)}`).join(' ');
+    const areaBot = padT + cH;
+    const area = `M${xS(0)},${yS(data[0].kg)} ` + data.map((d, i) => `L${xS(i)},${yS(d.kg)}`).join(' ') + ` L${xS(n-1)},${areaBot} L${xS(0)},${areaBot} Z`;
+
+    return `<svg viewBox="0 0 ${W} ${H}" width="100%">
+      <defs><linearGradient id="bwg" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#fbbf24" stop-opacity="0.3"/>
+        <stop offset="100%" stop-color="#fbbf24" stop-opacity="0"/>
+      </linearGradient></defs>
+      ${grid}${xLabels}
+      <path d="${area}" fill="url(#bwg)"/>
+      <polyline points="${pts}" fill="none" stroke="#fbbf24" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+      ${data.map((d, i) => `<circle cx="${xS(i)}" cy="${yS(d.kg)}" r="2.5" fill="#0e0900" stroke="#fbbf24" stroke-width="2"/>`).join('')}
+    </svg>`;
+  }
+};
+
+// ── Badge HTML helper ────────────────────────────────────────────────────
+function badgeHtml(a, b) {
+  if (!b) return '';
+  const p = pct(a, b);
+  if (p === null) return '';
+  const cls = +p > 0 ? 'up' : +p < 0 ? 'dn' : 'eq';
+  const arrow = +p > 0 ? '▲' : +p < 0 ? '▼' : '=';
+  return `<span class="badge ${cls}">${arrow}${Math.abs(p)}%</span>`;
+}
+
+// ── Render helpers ───────────────────────────────────────────────────────
+function statBox(val, lbl, unit, colorClass = '') {
+  return `<div class="stat">
+    <div class="stat-val ${colorClass}">${val}</div>
+    <div class="stat-lbl">${lbl}</div>
+    <div class="stat-unit">${unit}</div>
+  </div>`;
+}
+
+function metricLabel(m) { return m === 'weight' ? 'kg' : m === 'sets' ? 'sets' : 'reps'; }
+
+function pillRow(active, onChange) {
+  return `<div class="pill-row">
+    ${[['weight','⚖️ kg'],['sets','📦 Sets'],['reps','🔁 Reps']].map(([m, l]) =>
+      `<button class="pill ${active===m?'active':''}" onclick="dispatch('metric','${m}')">${l}</button>`
+    ).join('')}
+  </div>`;
+}
+
+function skuChart(skuData, tk, lk, col1, col2, field) {
+  if (!skuData.length) return `<div class="empty-state">No data for this workout yet.</div>`;
+  return `
+    <div class="card">
+      <div class="card-title">Per-Exercise: ${tk} vs ${lk} (${metricLabel(field)})</div>
+      <div class="chart-wrap">${CHART.hbar(skuData, tk, lk, col1, col2)}</div>
+      <div style="display:flex;gap:12px;margin-top:8px;font-size:10px">
+        <span><span style="display:inline-block;width:10px;height:10px;background:${col1};border-radius:2px;margin-right:4px;vertical-align:middle"></span>${tk}</span>
+        <span><span style="display:inline-block;width:10px;height:10px;background:${col2};border-radius:2px;margin-right:4px;vertical-align:middle"></span>${lk}</span>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Detail (${metricLabel(field)})</div>
+      ${skuData.map(row => `
+        <div class="detail-row">
+          <span class="detail-name">${row.name}</span>
+          <div class="detail-nums">
+            <span style="font-size:13px;font-weight:700;color:${col1}">${row[tk]}</span>
+            <span style="font-size:11px;color:#4a3518">vs</span>
+            <span style="font-size:13px;font-weight:700;color:#4a3518">${row[lk]}</span>
+            ${badgeHtml(row[tk], row[lk])}
+          </div>
+        </div>`).join('')}
+    </div>`;
+}
+
+function sessionChips(a, b, aLabel, bLabel) {
+  if (!a && !b) return '';
+  return `<div class="session-chips">
+    ${a ? `<div class="sess-chip">
+      <div class="sess-chip-label">${aLabel}</div>
+      <div class="sess-chip-date" style="color:#fbbf24">${a.date}</div>
+      <div class="sess-chip-count">${a.entries.length} exercises</div>
+    </div>` : ''}
+    ${b ? `<div class="sess-chip">
+      <div class="sess-chip-label">${bLabel}</div>
+      <div class="sess-chip-date" style="color:#4a3518">${b.date}</div>
+      <div class="sess-chip-count">${b.entries.length} exercises</div>
+    </div>` : ''}
+  </div>`;
+}
+
+// ── Tab renderers ────────────────────────────────────────────────────────
+function renderLog() {
+  const exList = WORKOUTS[state.logDay] || [];
+  const rows = state.entries.map(ex => `
+    <div class="ex-row" id="ex-${ex.id}">
+      <select class="ex-sel" onchange="updateEx('${ex.id}','exercise',this.value)">
+        ${exList.map(e => `<option value="${e}" ${e===ex.exercise?'selected':''}>${e}</option>`).join('')}
+      </select>
+      <div class="ex-inputs">
+        <div><div class="mini-lbl">Sets</div><input class="mini-inp" type="number" value="${ex.sets}" oninput="updateEx('${ex.id}','sets',this.value)"/></div>
+        <div><div class="mini-lbl">Reps</div><input class="mini-inp" type="number" value="${ex.reps}" oninput="updateEx('${ex.id}','reps',this.value)"/></div>
+        <div><div class="mini-lbl">kg</div><input class="mini-inp" type="number" value="${ex.weight}" oninput="updateEx('${ex.id}','weight',this.value)"/></div>
+        <button class="del-btn" onclick="delEx('${ex.id}')">🗑</button>
+      </div>
+    </div>`).join('');
+
+  return `<div class="page">
+    <div class="card">
+      <div class="row2">
+        <div class="field"><label>Date</label>
+          <input type="date" value="${state.logDate}" onchange="dispatch('logDate',this.value)"/>
+        </div>
+        <div class="field"><label>Day</label>
+          <select onchange="dispatch('logDay',this.value)">
+            ${DAY_KEYS.map(d => `<option value="${d}" ${d===state.logDay?'selected':''}>${d}</option>`).join('')}
+          </select>
+        </div>
+      </div>
+      <div class="btnrow">
+        <button class="btn btn-secondary" onclick="loadLog()">📂 Load</button>
+        <button class="btn btn-primary" onclick="addEx()">➕ Add Exercise</button>
+      </div>
+    </div>
+    ${state.entries.length === 0
+      ? `<div class="empty-state">No exercises yet.<br/>Tap ➕ to start! 🔥</div>`
+      : rows}
+    ${state.entries.length > 0
+      ? `<button class="btn btn-primary" style="margin-top:4px" onclick="saveLog()">💾 Save Workout</button>`
+      : ''}
+  </div>`;
+}
+
+function renderWeekly() {
+  const thisMonday = mondayOf(today());
+  const lastMonday = addDays(thisMonday, -7);
+  const tw = getLogForWeek(thisMonday, state.wkDay);
+  const lw = getLogForWeek(lastMonday, state.wkDay);
+  const m = state.metric;
+  const skuData = buildSkuData(tw?.entries, lw?.entries, 'This Week', 'Last Week', m);
+  const ts = totalField(tw?.entries, m), ls2 = totalField(lw?.entries, m);
+  const ts2 = totalField(tw?.entries, 'sets'), ls3 = totalField(lw?.entries, 'sets');
+  const tr = totalField(tw?.entries, 'reps'), lr = totalField(lw?.entries, 'reps');
+
+  return `<div class="page">
+    <div class="field"><label>Workout Day</label>
+      <select onchange="dispatch('wkDay',this.value)">
+        ${DAY_KEYS.map(d => `<option value="${d}" ${d===state.wkDay?'selected':''}>${d}</option>`).join('')}
+      </select>
+    </div>
+    <p class="sec-head">Total – This Week vs Last Week</p>
+    <div class="stat-grid">
+      ${statBox(ts2 + badgeHtml(ts2,ls3), 'Sets', 'count', '')}
+      ${statBox(tr  + badgeHtml(tr,lr),   'Reps', 'count', 'c2')}
+      ${statBox(totalField(tw?.entries,'weight') + badgeHtml(totalField(tw?.entries,'weight'),totalField(lw?.entries,'weight')), 'kg', 'kg', 'c3')}
+    </div>
+    ${pillRow(m, 'metric')}
+    ${skuChart(skuData, 'This Week', 'Last Week', '#f59e0b', '#3d2800', m)}
+    ${sessionChips(tw, lw, 'This Week', 'Last Week')}
+  </div>`;
+}
+
+function renderMonthly() {
+  const tm = getLogForMonth(monthOf(today()), state.moDay);
+  const lm = getLogForMonth(prevMonth(), state.moDay);
+  const m = state.metric;
+  const skuData = buildSkuData(tm?.entries, lm?.entries, 'This Month', 'Last Month', m);
+  const tSet = totalField(tm?.entries,'sets'), lSet = totalField(lm?.entries,'sets');
+  const tRep = totalField(tm?.entries,'reps'), lRep = totalField(lm?.entries,'reps');
+  const tKg  = totalField(tm?.entries,'weight'), lKg = totalField(lm?.entries,'weight');
+
+  return `<div class="page">
+    <div class="field"><label>Workout Day</label>
+      <select onchange="dispatch('moDay',this.value)">
+        ${DAY_KEYS.map(d => `<option value="${d}" ${d===state.moDay?'selected':''}>${d}</option>`).join('')}
+      </select>
+    </div>
+    <p class="sec-head">Total – This Month vs Last Month</p>
+    <div class="stat-grid">
+      ${statBox(tSet + badgeHtml(tSet,lSet), 'Sets', 'count', '')}
+      ${statBox(tRep + badgeHtml(tRep,lRep), 'Reps', 'count', 'c2')}
+      ${statBox(tKg  + badgeHtml(tKg,lKg),   'kg',   'kg',    'c3')}
+    </div>
+    ${pillRow(m, 'metric')}
+    ${skuChart(skuData, 'This Month', 'Last Month', '#fb923c', '#3d2800', m)}
+    ${sessionChips(tm, lm, 'This Month', 'Last Month')}
+  </div>`;
+}
+
+function renderProgress() {
+  const sessions = getAllTimeSessions(state.prDay);
+  if (!sessions.length)
+    return `<div class="page">
+      <div class="row2">
+        <div class="field"><label>Workout Day</label>
+          <select onchange="dispatch('prDay',this.value)">
+            ${DAY_KEYS.map(d => `<option value="${d}" ${d===state.prDay?'selected':''}>${d}</option>`).join('')}
+          </select>
+        </div>
+        <div class="field"><label>Metric</label>
+          <select onchange="dispatch('prMetric',this.value)">
+            <option value="weight" ${state.prMetric==='weight'?'selected':''}>⚖️ Weight (kg)</option>
+            <option value="sets"   ${state.prMetric==='sets'  ?'selected':''}>📦 Sets</option>
+            <option value="reps"   ${state.prMetric==='reps'  ?'selected':''}>🔁 Reps</option>
+          </select>
+        </div>
+      </div>
+      <div class="empty-state">No sessions logged for this workout yet.<br/>Start logging to see progress curves! 🔥</div>
+    </div>`;
+
+  const allExNames = [...new Set(sessions.flatMap(s => s.entries.map(e => e.exercise)))];
+  const sessionRows = sessions.map(s => {
+    const row = { date: shortDate(s.date) };
+    allExNames.forEach(ex => {
+      const found = s.entries.find(e => e.exercise === ex);
+      row[ex] = found ? (+found[state.prMetric] || 0) : null;
+    });
+    return row;
+  });
+
+  const activeExs = state.selEx.length > 0 ? state.selEx : allExNames.slice(0, 5);
+
+  // avg growth
+  const first = sessionRows[0], last = sessionRows[sessionRows.length - 1];
+  const growthVals = activeExs.map(ex => ({ f: first[ex] || 0, l: last[ex] || 0 })).filter(v => v.f > 0);
+  const avgGrowth = growthVals.length
+    ? (growthVals.reduce((s, v) => s + ((v.l - v.f) / v.f * 100), 0) / growthVals.length).toFixed(0)
+    : null;
+
+  // legend
+  const legend = activeExs.map(ex => {
+    const col = LINE_COLORS[allExNames.indexOf(ex) % LINE_COLORS.length];
+    return `<div class="prog-legend-item">
+      <div class="prog-legend-dot" style="background:${col}"></div>
+      <span style="max-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${ex}</span>
+    </div>`;
+  }).join('');
+
+  // exercise chips
+  const chips = `<div class="prog-filters">
+    <button class="prog-chip ${state.selEx.length===0?'active':''}"
+      style="${state.selEx.length===0?'background:#f59e0b22;border-color:#f59e0b;color:#fbbf24':''}"
+      onclick="dispatch('selEx',[])">All (top 5)</button>
+    ${allExNames.map((ex, i) => {
+      const col = LINE_COLORS[i % LINE_COLORS.length];
+      const sel = state.selEx.includes(ex);
+      return `<button class="prog-chip ${sel?'active':''}"
+        style="${sel?`background:${col}18;border-color:${col};color:${col}`:''}"
+        onclick="toggleEx('${ex}')">${ex}</button>`;
+    }).join('')}
+  </div>`;
+
+  // per-exercise breakdown cards
+  const exCards = activeExs.map(ex => {
+    const col = LINE_COLORS[allExNames.indexOf(ex) % LINE_COLORS.length];
+    const vals = sessionRows.map(s => s[ex]).filter(v => v !== null && v > 0);
+    if (!vals.length) return '';
+    const fv = vals[0], lv = vals[vals.length - 1], mx = Math.max(...vals);
+    const chg = pct(lv, fv);
+    const chgBadge = chg !== null
+      ? `<span class="badge ${+chg>=0?'up':'dn'}">${+chg>=0?'▲':'▼'}${Math.abs(chg)}%</span>` : '';
+    const ml = metricLabel(state.prMetric);
+    return `<div class="card ex-card" style="border-left:3px solid ${col}">
+      <div class="ex-card-header">
+        <span class="ex-card-name" style="color:${col}">${ex}</span>
+        ${chgBadge}
+      </div>
+      <div class="ex-card-stats">
+        ${[['First',fv,'#8a6a3a'],['Latest',lv,col],['Peak',mx,'#fcd34d']].map(([l,v,c]) =>
+          `<div class="ex-stat">
+            <div class="ex-stat-val" style="color:${c}">${v}</div>
+            <div class="ex-stat-lbl">${l} (${ml})</div>
+          </div>`).join('')}
+      </div>
+      ${vals.length > 1 ? `<div class="sparkline">${CHART.spark(vals, col)}</div>` : ''}
+    </div>`;
+  }).join('');
+
+  return `<div class="page">
+    <div class="row2">
+      <div class="field"><label>Workout Day</label>
+        <select onchange="dispatch('prDay',this.value)">
+          ${DAY_KEYS.map(d => `<option value="${d}" ${d===state.prDay?'selected':''}>${d}</option>`).join('')}
+        </select>
+      </div>
+      <div class="field"><label>Metric</label>
+        <select onchange="dispatch('prMetric',this.value)">
+          <option value="weight" ${state.prMetric==='weight'?'selected':''}>⚖️ Weight (kg)</option>
+          <option value="sets"   ${state.prMetric==='sets'  ?'selected':''}>📦 Sets</option>
+          <option value="reps"   ${state.prMetric==='reps'  ?'selected':''}>🔁 Reps</option>
+        </select>
+      </div>
+    </div>
+    <p class="sec-head">Select Exercises</p>
+    ${chips}
+    <p class="sec-head">Overall Summary – All Sessions</p>
+    <div class="stat-grid">
+      ${statBox(sessions.length, 'Sessions', 'logged', '')}
+      ${statBox(activeExs.length, 'Exercises', 'shown', 'c2')}
+      ${statBox(avgGrowth !== null ? (avgGrowth >= 0 ? '▲' : '▼') + Math.abs(avgGrowth) + '%' : '—', 'Avg Growth', 'first→last', 'c3')}
+    </div>
+    <div class="card">
+      <div class="card-title">All-Time Progress – ${metricLabel(state.prMetric)} per Exercise</div>
+      <div class="prog-legend">${legend}</div>
+      <div class="chart-wrap">${CHART.lines(sessionRows, allExNames, activeExs, LINE_COLORS)}</div>
+    </div>
+    <p class="sec-head">Exercise Breakdown</p>
+    ${exCards}
+  </div>`;
+}
+
+function renderBody() {
+  const thisMonday = mondayOf(today());
+  const lastMonday = addDays(thisMonday, -7);
+  const weekDays   = Array.from({length:7}, (_, i) => addDays(thisMonday, i));
+  const weekBW     = weekDays.map(d => ({ date: d, day: dayName(d), kg: state.bw[d] || null }));
+  const lastBWArr  = Array.from({length:7}, (_, i) => addDays(lastMonday, i)).map(d => state.bw[d]).filter(Boolean);
+  const thisVals   = weekBW.map(w => w.kg).filter(Boolean);
+  const avgThis    = thisVals.length ? +(thisVals.reduce((a,b)=>a+b,0)/thisVals.length).toFixed(1) : null;
+  const avgLast    = lastBWArr.length ? +(lastBWArr.reduce((a,b)=>a+b,0)/lastBWArr.length).toFixed(1) : null;
+  const bwData     = Object.entries(state.bw).sort((a,b)=>a[0].localeCompare(b[0])).slice(-30).map(([d,kg])=>({date:shortDate(d),kg}));
+
+  return `<div class="page">
+    <div class="card">
+      <div class="card-title">Log Body Weight</div>
+      <div class="row2">
+        <div class="field"><label>Date</label>
+          <input type="date" value="${state.bwDate}" onchange="dispatch('bwDate',this.value)"/>
+        </div>
+        <div class="field"><label>Weight (kg)</label>
+          <input type="number" placeholder="e.g. 78.5" value="${state.bwInput}"
+            oninput="dispatch('bwInput',this.value)" id="bw-inp"/>
+        </div>
+      </div>
+      <button class="btn btn-primary" onclick="saveBW()">💾 Save</button>
+    </div>
+    <p class="sec-head">This Week vs Last Week</p>
+    <div class="stat-grid stat-grid-2">
+      ${statBox((avgThis ?? '—') + badgeHtml(avgThis, avgLast), 'This Week', 'avg kg', '')}
+      ${statBox(avgLast ?? '—', 'Last Week', 'avg kg', 'dim')}
+    </div>
+    <div class="card">
+      <div class="card-title">Daily – This Week</div>
+      ${weekBW.map(w => `
+        <div class="bw-row">
+          <span class="bw-date">${w.day} <span style="color:#4a3518;font-size:11px">${w.date}</span></span>
+          <span class="bw-val ${w.kg?'':'empty-val'}">${w.kg ? w.kg+' kg' : '—'}</span>
+        </div>`).join('')}
+    </div>
+    ${bwData.length > 1 ? `
+      <div class="card">
+        <div class="card-title">30-Day Weight Trend</div>
+        <div class="chart-wrap">${CHART.bwLine(bwData)}</div>
+      </div>` : ''}
+    <p class="sec-head">Recent Entries</p>
+    <div class="card">
+      ${Object.entries(state.bw).length === 0
+        ? `<div class="empty-state">No entries yet.</div>`
+        : Object.entries(state.bw).sort((a,b)=>b[0].localeCompare(a[0])).slice(0,10).map(([d,kg])=>`
+          <div class="bw-row">
+            <span class="bw-date">${d}</span>
+            <span class="bw-val">${kg} kg</span>
+          </div>`).join('')}
+    </div>
+  </div>`;
+}
+
+// ── Main render ──────────────────────────────────────────────────────────
+function render() {
+  const pages = { log: renderLog, weekly: renderWeekly, monthly: renderMonthly, progress: renderProgress, body: renderBody };
+  const content = (pages[state.tab] || renderLog)();
+  const nav = TABS.map(t => `
+    <button class="bnbtn ${state.tab===t.id?'active':''}" onclick="setTab('${t.id}')">
+      <span class="bnbtn-ico">${t.icon}</span>
+      <span>${t.label}</span>
+    </button>`).join('');
+
+  document.getElementById('app').innerHTML = `
+    <div class="topbar">
+      <span class="topbar-title">Ajish Rajan's Gym Tracker</span>
+      <span class="topbar-sub">🔥 Pro Edition</span>
+    </div>
+    ${content}
+    <div class="bottomnav">${nav}</div>`;
+}
+
+// ── Action handlers ──────────────────────────────────────────────────────
+function dispatch(key, value) {
+  // If it's the log day or date, also reload entries from storage
+  if (key === 'logDay' || key === 'logDate') {
+    state[key] = value;
+    const k = logKey(state.logDate, state.logDay);
+    state.entries = state.allLogs[k] ? JSON.parse(JSON.stringify(state.allLogs[k])) : [];
+  } else {
+    state[key] = value;
+  }
+  render();
+}
+
+function setTab(t) { state.tab = t; render(); }
+
+function addEx() {
+  const exList = WORKOUTS[state.logDay] || [];
+  const used = state.entries.map(e => e.exercise);
+  const next = exList.find(e => !used.includes(e)) || exList[0] || 'Exercise';
+  const id = Math.random().toString(36).slice(2, 8);
+  state.entries.push({ id, exercise: next, sets: 3, reps: 10, weight: 0 });
+  render();
+}
+
+function updateEx(id, field, value) {
+  const ex = state.entries.find(e => e.id === id);
+  if (ex) ex[field] = value;
+  // no full re-render for typing — just save to state silently
+}
+
+function delEx(id) {
+  state.entries = state.entries.filter(e => e.id !== id);
+  render();
+}
+
+function loadLog() {
+  const k = logKey(state.logDate, state.logDay);
+  state.entries = state.allLogs[k] ? JSON.parse(JSON.stringify(state.allLogs[k])) : [];
+  render();
+}
+
+function saveLog() {
+  // flush any typed-but-not-re-rendered input values before saving
+  document.querySelectorAll('.mini-inp').forEach(inp => {
+    const row = inp.closest('.ex-row');
+    if (!row) return;
+    const id = row.id.replace('ex-', '');
+    const ex = state.entries.find(e => e.id === id);
+    if (!ex) return;
+    if (inp.previousElementSibling?.textContent === 'Sets')   ex.sets   = inp.value;
+    if (inp.previousElementSibling?.textContent === 'Reps')   ex.reps   = inp.value;
+    if (inp.previousElementSibling?.textContent === 'kg')     ex.weight = inp.value;
+  });
+  const k = logKey(state.logDate, state.logDay);
+  state.allLogs[k] = JSON.parse(JSON.stringify(state.entries));
+  ls.set('gtp_logs', state.allLogs);
+  alert('✅ Workout saved!');
+  render();
+}
+
+function saveBW() {
+  const v = document.getElementById('bw-inp')?.value || state.bwInput;
+  if (!v) return;
+  state.bw[state.bwDate] = +v;
+  state.bwInput = '';
+  ls.set('gtp_bw', state.bw);
+  render();
+}
+
+function toggleEx(ex) {
+  if (state.selEx.includes(ex)) state.selEx = state.selEx.filter(e => e !== ex);
+  else state.selEx = [...state.selEx, ex];
+  render();
+}
+
+// ── Flush inputs on exercise select change ────────────────────────────────
+// (select uses onchange so it fires immediately — inputs use oninput to store
+// without re-rendering, but we need to persist before actions like save/delete)
+
+// ── Boot ─────────────────────────────────────────────────────────────────
+render();
+</script>
+</body>
+</html>
